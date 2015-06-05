@@ -314,7 +314,7 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
 #Read Fasta file
 	cat("\nLoading fasta file...")
 	data <- file(eval(path_in))
-	sqldf("select * from data", file.format = list(header=FALSE, sep='\n', comment.char=''))->fasta
+	sqldf("select * from data", file.format = list(header=FALSE, sep='\n'))->fasta
 	closeAllConnections()
 
 ##########
