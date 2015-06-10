@@ -22,6 +22,7 @@ if("--help" %in% args) {
 	--likes=		beagle-format genotype likelihoods from ANGSD
 	--bootstrap=	number of bootstrap replicates [10]
 	--out=		output file path and prefix.
+	--offset=		ID number of the first replicate [1]
 	--help         	print this text.
  
 	Example:
@@ -51,6 +52,11 @@ if(is.null(argsL$likes)) {
 if(is.null(argsL$bootstrap)) {
 	bootstrap <- 10
 } else { bootstrap <- as.numeric(argsL$bootstrap) }
+
+## --offset default
+if(is.null(argsL$offset)) {
+	offset <- 0
+} else { offset <- (as.numeric(argsL$offset)-1) }
 	
 ## --out default
 if(is.null(argsL$out)) {
@@ -85,7 +91,7 @@ pb <- txtProgressBar(min = 1, max = bootstrap, style = 3)
 	for(B in 1:bootstrap){
 		sample(likes.id, n.likes, replace=T)->indices
 		likes[indices,]->likes.boots
-		write.table(likes.boots, paste(path_out, "_", B, ".lhoods", sep="", collapse=""), sep='\t', quote=F, col.names=T, row.names=F)
+		write.table(likes.boots, paste(path_out, "_", (B+offset), ".lhoods", sep="", collapse=""), sep='\t', quote=F, col.names=T, row.names=F)
 		setTxtProgressBar(pb,B)
 	}
 
