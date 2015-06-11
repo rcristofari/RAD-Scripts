@@ -29,7 +29,7 @@ if("--help" %in% args) {
  	
  	Population map is a tab-separated text file: first field contains unique individual names, second field
  	3-letter population codes, tab-separated. Use ignore_pop to ignore that information and output a single
- 	file per locus. 'Keep' list is a simple column of individual names to retain is analysis is restricted
+ 	file per locus. 'Keep' list is a simple column of individual names to retain if analysis is restricted
  	to a subset of samples.
  	
  	You can choose the number of samples to output using nind. In case of multiple populations, specify the
