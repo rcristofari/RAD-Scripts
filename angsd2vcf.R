@@ -20,20 +20,29 @@ if(length(args) < 1) {
 
 if("--help" %in% args) {
   cat("
+	_________________________________________________________________________________________________
+	
 	angsd2vcf
-
-	Converts a genotype call file produced by ANGSD into a VCF format, used for analysis in other packages, or for SNP call comparison using VCFtools perl scripts. Note that it will set a quality score of 30 by default.
-	Genotypes should be in 012 format, as output by ANGSD using the -doGeno 3 option (Major, minor and calls).
+	_________________________________________________________________________________________________
+	
+	Converts a genotype call file produced by ANGSD into a VCF format, used for analysis in other 
+	packages, or for SNP call comparison using VCFtools perl scripts. Note that it will set a quality 
+	score of 30 by default. Genotypes should be in 012 format, as output by ANGSD using the '-doGeno 3'
+	option (Major, minor and calls). Read counts are as output by ANGSD with '-doCounts 1 -dumpCounts 2'
+	options. Input files may be gzipped.
  
 	Arguments:
 	--bam=		path to the BAM file list used in ANGSD
 	--geno=		path to the ANGSD genotype file
+	--counts=	path to the ANGSD counts file
 	--out=		path to write the vcf file
 	--help      	print this text
  
 	Example:
-	./angsd2vcf.R --bam=~/path/to/BAM.list --geno=~/path/to/genotypes.geno --out=~/path/to/outfile.vcf\n\n")
- 
+	./angsd2vcf.R --bam=./BAM.list --geno=./angsd.geno.gz --counts=./angsd.counts.gz --out=./outfile.vcf
+	_________________________________________________________________________________________________
+	
+")
 q(save="no")}
 
 ###########################################################################################
@@ -51,6 +60,9 @@ if(is.null(argsL$bam)) {
 ##--geno error
 if(is.null(argsL$geno)) {
 	stop("No genotype file has been provided")}
+##--counts error
+if(is.null(argsL$counts)) {
+	stop("No read counts file has been provided")}
 ## --out error
 if(is.null(argsL$out)) {
   stop("No output folder has been provided")}
@@ -60,6 +72,7 @@ if(is.null(argsL$out)) {
 ###########################################################################################
 argsL$bam -> path_bam
 argsL$geno -> path_geno
+argsL$counts -> path_counts
 argsL$out -> path_out
 	
 ###########################################################################################		
@@ -69,6 +82,7 @@ argsL$out -> path_out
 #Check the input
 if(file.exists(eval(path_bam))==FALSE){stop("BAM file list not found.")}
 if(file.exists(eval(path_geno))==FALSE){stop("Genotype file not found.")}
+if(file.exists(eval(path_counts))==FALSE){stop("Depth file not found.")}
 #Check the output directory
 if(file.exists(dirname(eval(path_out)))==FALSE){stop("Output directory not found")}
 
@@ -81,6 +95,11 @@ sub("^([^.]*).*", "\\1", bam.list)->bam.list
 read.csv(eval(path_geno), header=F, sep='\t')->geno
 nrow(geno)->nsites
 ncol(geno)-5->nind
+
+#Reading the Counts file
+read.csv(eval(path_counts), header=T, sep='\t')->counts
+counts[,1:ncol(counts)-1]->counts
+as.matrix(counts)->counts
 
 #Measuring the list & checking
 nbam<-length(bam.list)
@@ -118,6 +137,14 @@ data[data==-1]<-'./.'
 data[data==0]<-'0/0'
 data[data==1]<-'0/1'
 data[data==2]<-'1/1'
+as.matrix(data)->data
+paste(data, counts, sep=':')->data
+matrix(data, ncol=nind)->data
+
+#Fix the genotypes with null coverage:
+data[data=='0/0:0']<-'./.:0'
+data[data=='0/1:0']<-'./.:0'
+data[data=='1/1:0']<-'./.:0'
 
 vcf<-cbind(metadata, data)
 names(vcf)<-vcf.header
@@ -125,7 +152,7 @@ vcf$ID <- '.'
 vcf$QUAL<-30
 vcf$FILTER <- '.'
 vcf$INFO <- '.'
-vcf$FORMAT<-'GT'
+vcf$FORMAT<-'GT:DP'
 
 write.table(vcf, eval(path_out), sep='\t', append=T, quote=F, row.names=F, col.names=T)
 
