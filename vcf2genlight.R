@@ -13,11 +13,14 @@ if(length(args) < 1) {
 
 if("--help" %in% args) {
   cat("
-	vcf2genlight
+  
+	
+	angsd2vcf
+	_________________________________________________________________________________________________
+	
+	Converts a VCF file to the SNP input format for adegenet. You can provide a population map (two 
+	columns, one of sample ID and one of population ID, tab-separated).
 
-	Converts a genotype call file produced by ANGSD into a VCF format, used for analysis in other packages, or for SNP call comparison using VCFtools perl scripts. Note that it will set a quality score of 30 by default.
-	Genotypes should be in 012 format, as output by ANGSD using the -doGeno 3 option (Major, minor and calls).
- 
 	Arguments:
 	--vcf=		path to the VCF file to convert
 	--out=		output file name and path
@@ -25,7 +28,10 @@ if("--help" %in% args) {
 	--help      	print this text
  
 	Example:
-	./vcf2genlight.R --vcf=~/path/to/data.vcf --out=~/path/to/outfile.snp\n\n")
+	./vcf2genlight.R --vcf=~/path/to/data.vcf --out=~/path/to/outfile.snp
+	_________________________________________________________________________________________________
+
+")
  
 q(save="no")}
 
