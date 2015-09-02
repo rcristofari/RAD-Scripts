@@ -131,9 +131,9 @@ cat("done.\n")
 	which(vcf$POS==first.block$V2[1])-1 ->first.block.start
 
 #Write the beginning of the (unphased) data:
-	if(first.block.start>0){
-	write.table(vcf[1:first.block.start,], paste(path_out, ".phased.vcf", sep=""), quote=F, row.names=F, col.names=F, sep='\t', append=T)
-	}
+#	if(first.block.start>0){
+#	write.table(vcf[1:first.block.start,], paste(path_out, ".phased.vcf", sep=""), quote=F, row.names=F, col.names=F, sep='\t', append=T)
+#	}
 
 cat("\tWriting phased VCF...\n\n")
 
