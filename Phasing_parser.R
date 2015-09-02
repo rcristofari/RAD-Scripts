@@ -69,7 +69,7 @@ if(is.null(argsL$vcf)){
 
 #--path_out default:
 if(is.null(argsL$nSamples)){
-	path_out <- strsplit(path_vcf, "\\.")[[1]][1]
+	path_out <- paste(dirname(path_vcf), "/", strsplit(path_vcf, "\\.")[[1]][1], sep='')
 } else {
 	argsL$out->path_out
 }
@@ -185,6 +185,8 @@ setTxtProgressBar(pb,b)
 
 }
 
+
+system("rm -r .temp/")
 
 cat('\n\tΤΑ ΔΗ ΝΥΝ ΠΑΝΤΑ ΤΕΛΕΙΤΑΙ\n\n')
 
