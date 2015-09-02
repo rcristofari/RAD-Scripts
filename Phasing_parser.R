@@ -68,7 +68,7 @@ if(is.null(argsL$vcf)){
 }
 
 #--path_out default:
-if(is.null(argsL$nSamples)){
+if(is.null(argsL$out)){
 	path_out <- paste(dirname(path_vcf), "/", strsplit(path_vcf, "\\.")[[1]][1], sep='')
 } else {
 	argsL$out->path_out
@@ -105,7 +105,7 @@ cat("done.\n")
 ##Read the phasing file and parse it into blocks:
 #Split the phase file into phase blocks.
 cat("\tParsing the phase file...")
-	paste("mkdir .temp -p ; rm .temp/* ; cat ", path_phase, " | tr '\n' '&' | sed -E 's/&&/\\n/g' | tr '&' '\n' | awk -v RS=\"BLOCK\" 'NR > 1 { print RS $0 > \"temp\" (NR-1); close(\"temp\" (NR-1)) }' ; mv temp* .temp/", sep='')->cmd
+	paste("mkdir .temp -p ; rm -f .temp/* ; cat ", path_phase, " | tr '\n' '&' | sed -E 's/&&/\\n/g' | tr '&' '\n' | awk -v RS=\"BLOCK\" 'NR > 1 { print RS $0 > \"temp\" (NR-1); close(\"temp\" (NR-1)) }' ; mv temp* .temp/", sep='')->cmd
 	system(cmd)
 #List the phase-block files
 	list.files('.temp')->block.files
@@ -133,6 +133,7 @@ cat("\tWriting phased VCF...\n\n")
 
 #Set the progress bar
 	pb <- txtProgressBar(min = 0, max = n.blocks, style = 3)		#set the progress bar
+
 
 #Start looping through the block files
 for(b in 1:n.blocks){
@@ -166,21 +167,20 @@ for(b in 1:n.blocks){
 	vcf.block[vcf.block$POS %in% block$POS,10]<-as.character(PHASE)
 
 
-#beacon<-paste("Check: Phased start: ",vcf.block.start,", phased stop: ",vcf.block.end, sep='')
-#write.table(beacon, paste(path_out, ".phased.vcf", sep=""), quote=F, row.names=F, col.names=F, sep='\t', append=T)
+		#beacon<-paste("Check: Phased start: ",vcf.block.start,", phased stop: ",vcf.block.end, sep='')
+		#write.table(beacon, paste(path_out, ".phased.vcf", sep=""), quote=F, row.names=F, col.names=F, sep='\t', append=T)
 
 #Write the phased data:
 	write.table(vcf.block, paste(path_out, ".phased.vcf", sep=""), quote=F, row.names=F, col.names=F, sep='\t', append=T)
-
-#beacon<-paste("Check: Unphased start: ",vcf.block.end+1,", unphased stop: ",next.block.start, sep='')
-#write.table(beacon, paste(path_out, ".phased.vcf", sep=""), quote=F, row.names=F, col.names=F, sep='\t', append=T)
+		#beacon<-paste("Check: Unphased start: ",vcf.block.end+1,", unphased stop: ",next.block.start, sep='')
+		#write.table(beacon, paste(path_out, ".phased.vcf", sep=""), quote=F, row.names=F, col.names=F, sep='\t', append=T)
 
 #Write the buffering unphased data:
+	if(next.block.start > (vcf.block.end+1)){
 	write.table(vcf[(vcf.block.end+1):next.block.start,], paste(path_out, ".phased.vcf", sep=""), quote=F, row.names=F, col.names=F, sep='\t', append=T)
-#beacon<-paste("End of loop")
-#write.table(beacon, paste(path_out, ".phased.vcf", sep=""), quote=F, row.names=F, col.names=F, sep='\t', append=T)
-
-
+		#beacon<-paste("End of loop")
+		#write.table(beacon, paste(path_out, ".phased.vcf", sep=""), quote=F, row.names=F, col.names=F, sep='\t', append=T)
+	}
 setTxtProgressBar(pb,b)
 
 }
