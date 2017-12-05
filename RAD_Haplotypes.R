@@ -321,19 +321,21 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
 #Parse the data
 	cat("done.\nFormatting fasta file...")
 	fasta[seq(1,nrow(fasta), 2),]->header
-	gsub('Scaffold_', 'Scaffold', header)->header
+	gsub('>CLocus_|\\[|\\]\\,', '', header)->header
 	fasta[seq(2,nrow(fasta), 2),]->sequences
 	strsplit(as.character(header), '_')->splits
+        strsplit(as.character(header), '_| ')->splits2
+	lapply(splits2, "[", c(1:7))->splits2
 	data.frame(matrix(unlist(splits), nrow=length(header), byrow=T))->metadata
-	data.frame(matrix(unlist(strsplit(gsub('\\[|\\,|\\]', '', as.character(metadata$X8)), ' ')), nrow=length(header), byrow=T))->position
+	data.frame(matrix(unlist(splits2), nrow=length(header), byrow=T))->metadata2
 
 ##########
 #Combine it into a dataframe
-	data.frame(metadata$X2,metadata$X4,position$X1,position$X3,position$X4, position$X5, sequences)->data
+	data.frame(metadata2$X1,metadata2$X3,metadata2$X7,metadata$X3,metadata$X4, metadata$X5, sequences)->data
 	names(data)<-c("Locus","Sample","Allele","Chromosome","Position","Strand","Sequence")
 	as.numeric(levels(data$Locus))[data$Locus]->data$Locus
 	as.numeric(levels(data$Sample))[data$Sample]->data$Sample
-	as.numeric(gsub(' ', '', position$X1))->data$Allele
+	as.numeric(levels(data$Allele))[data$Allele]->data$Allele
 
 ##########
 #Fixing the real sample and population names from the population map
@@ -603,7 +605,7 @@ for(l in 1:nloci){
 		#Find the number of mismatches
 		if(sum(dist.alignment(locus.align))==0){n_mismatches<-0
 		} else { alignment2genind(locus.align, polyThres=0)->dna
-		length(dna@loc.names)->n_mismatches}
+		length(dna@all.names)->n_mismatches}
 	
 		#Find the number of haplotypes
 		length(unique(locus.align$seq))->n_haplo
@@ -824,7 +826,7 @@ if(out_type != 'migrate'){
 				n_mismatches<-0
 			} else {
 				alignment2genind(align, polyThres=0)->dna
-				length(dna@loc.names)->n_mismatches
+				length(dna@all.names)->n_mismatches
 			}
 			
 		##########
@@ -868,7 +870,7 @@ for(l in 1:nloci){
 			n_mismatches<-0
 		} else {
 			alignment2genind(align, polyThres=0)->dna
-			length(dna@loc.names)->n_mismatches
+			length(dna@all.names)->n_mismatches
 		}
 
 		align$nb->nseq
