@@ -175,6 +175,8 @@ cat('\n_________________________________________________________________________
 		stop("Fasta input file doesn't exist")}
 	if(file.exists(eval(path_map))==FALSE){
 		stop("Population map file doesn't exist")}
+	if(file.exists(eval(path_out))==FALSE){
+		stop("Output directory doesn't exist")}
 
 ##########
 #Load the required packages
@@ -323,16 +325,13 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
 	fasta[seq(1,nrow(fasta), 2),]->header
 	gsub('>CLocus_|\\[|\\]\\,', '', header)->header
 	fasta[seq(2,nrow(fasta), 2),]->sequences
-	strsplit(as.character(header), '_')->splits
-        strsplit(as.character(header), '_| ')->splits2
-	lapply(splits2, "[", c(1:7))->splits2
+	strsplit(as.character(header), '_| ')->splits
+	lapply(splits, "[", c(1:7))->splits
 	data.frame(matrix(unlist(splits), nrow=length(header), byrow=T))->metadata
-	data.frame(matrix(unlist(splits2), nrow=length(header), byrow=T))->metadata2
-
 ##########
 #Combine it into a dataframe
-	data.frame(metadata2$X1,metadata2$X3,metadata2$X7,metadata$X3,metadata$X4, metadata$X5, sequences)->data
-	names(data)<-c("Locus","Sample","Allele","Chromosome","Position","Strand","Sequence")
+	data.frame(metadata$X1,metadata$X3,metadata$X7, sequences)->data
+	names(data)<-c("Locus","Sample","Allele","Sequence")
 	as.numeric(levels(data$Locus))[data$Locus]->data$Locus
 	as.numeric(levels(data$Sample))[data$Sample]->data$Sample
 	as.numeric(levels(data$Allele))[data$Allele]->data$Allele
@@ -380,13 +379,12 @@ if(ignore==0){
 	split(data, data$Locus)->fasta.list
 	length(names(fasta.list))->nloci
 	cat("done.\n")
-
+        save(fasta.list, file=paste(path_save, 'RADhap.Rdata', sep=''))
 ##########
 #Clear up some memory before proceeding
 rm(fasta)
 rm(data)
 rm(sequences)
-rm(position)
 rm(metadata)
 rm(header)
 rm(splits)
