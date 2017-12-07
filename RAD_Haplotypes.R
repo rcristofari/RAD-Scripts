@@ -379,8 +379,6 @@ if(ignore==0){
 	split(data, data$Locus)->fasta.list
 	length(names(fasta.list))->nloci
 	cat("done.\n")
-        save(fasta.list, file=paste(path_save, 'RADhap.Rdata', sep=''))
-##########
 #Clear up some memory before proceeding
 rm(fasta)
 rm(data)
