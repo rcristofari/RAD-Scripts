@@ -323,15 +323,18 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
 #Parse the data
 	cat("done.\nFormatting fasta file...")
 	fasta[seq(1,nrow(fasta), 2),]->header
-	gsub('>CLocus_|\\[|\\]\\,', '', header)->header
+	gsub('>CLocus_|\\[|\\]|\\,|\\;', '', header)->header
 	fasta[seq(2,nrow(fasta), 2),]->sequences
 	strsplit(as.character(header), '_| ')->splits
 	lapply(splits, "[", c(1:7))->splits
 	data.frame(matrix(unlist(splits), nrow=length(header), byrow=T))->metadata
+	strsplit(as.character(header), ' ')->splits2
+	data.frame(matrix(unlist(splits2), nrow=length(header), byrow=T))-> metadata2
+
 ##########
 #Combine it into a dataframe
-	data.frame(metadata$X1,metadata$X3,metadata$X7, sequences)->data
-	names(data)<-c("Locus","Sample","Allele","Sequence")
+	data.frame(metadata$X1,metadata$X3,metadata$X7,metadata2$X3,metadata2$X4,metadata2$X5,sequences)->data
+	names(data)<-c("Locus","Sample","Allele","Chromosome","Position","Strand","Sequence")
 	as.numeric(levels(data$Locus))[data$Locus]->data$Locus
 	as.numeric(levels(data$Sample))[data$Sample]->data$Sample
 	as.numeric(levels(data$Allele))[data$Allele]->data$Allele
@@ -384,8 +387,10 @@ rm(fasta)
 rm(data)
 rm(sequences)
 rm(metadata)
+rm(metadata2)
 rm(header)
 rm(splits)
+rm(splits2)
 #gc()
 
 ############################################################################################################################
