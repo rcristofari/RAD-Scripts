@@ -175,6 +175,8 @@ cat('\n_________________________________________________________________________
 		stop("Fasta input file doesn't exist")}
 	if(file.exists(eval(path_map))==FALSE){
 		stop("Population map file doesn't exist")}
+	if(file.exists(eval(path_out))==FALSE){
+		stop("Output directory doesn't exist")}
 
 ##########
 #Load the required packages
@@ -321,19 +323,21 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
 #Parse the data
 	cat("done.\nFormatting fasta file...")
 	fasta[seq(1,nrow(fasta), 2),]->header
-	gsub('Scaffold_', 'Scaffold', header)->header
+	gsub('>CLocus_|\\[|\\]|\\,|\\;', '', header)->header
 	fasta[seq(2,nrow(fasta), 2),]->sequences
-	strsplit(as.character(header), '_')->splits
+	strsplit(as.character(header), '_| ')->splits
+	lapply(splits, "[", c(1:7))->splits
 	data.frame(matrix(unlist(splits), nrow=length(header), byrow=T))->metadata
-	data.frame(matrix(unlist(strsplit(gsub('\\[|\\,|\\]', '', as.character(metadata$X8)), ' ')), nrow=length(header), byrow=T))->position
+	strsplit(as.character(header), ' ')->splits2
+	data.frame(matrix(unlist(splits2), nrow=length(header), byrow=T))-> metadata2
 
 ##########
 #Combine it into a dataframe
-	data.frame(metadata$X2,metadata$X4,position$X1,position$X3,position$X4, position$X5, sequences)->data
+	data.frame(metadata$X1,metadata$X3,metadata$X7,metadata2$X3,metadata2$X4,metadata2$X5,sequences)->data
 	names(data)<-c("Locus","Sample","Allele","Chromosome","Position","Strand","Sequence")
 	as.numeric(levels(data$Locus))[data$Locus]->data$Locus
 	as.numeric(levels(data$Sample))[data$Sample]->data$Sample
-	as.numeric(gsub(' ', '', position$X1))->data$Allele
+	as.numeric(levels(data$Allele))[data$Allele]->data$Allele
 
 ##########
 #Fixing the real sample and population names from the population map
@@ -378,16 +382,15 @@ if(ignore==0){
 	split(data, data$Locus)->fasta.list
 	length(names(fasta.list))->nloci
 	cat("done.\n")
-
-##########
 #Clear up some memory before proceeding
 rm(fasta)
 rm(data)
 rm(sequences)
-rm(position)
 rm(metadata)
+rm(metadata2)
 rm(header)
 rm(splits)
+rm(splits2)
 #gc()
 
 ############################################################################################################################
@@ -603,7 +606,7 @@ for(l in 1:nloci){
 		#Find the number of mismatches
 		if(sum(dist.alignment(locus.align))==0){n_mismatches<-0
 		} else { alignment2genind(locus.align, polyThres=0)->dna
-		length(dna@loc.names)->n_mismatches}
+		length(dna@all.names)->n_mismatches}
 	
 		#Find the number of haplotypes
 		length(unique(locus.align$seq))->n_haplo
@@ -824,7 +827,7 @@ if(out_type != 'migrate'){
 				n_mismatches<-0
 			} else {
 				alignment2genind(align, polyThres=0)->dna
-				length(dna@loc.names)->n_mismatches
+				length(dna@all.names)->n_mismatches
 			}
 			
 		##########
@@ -868,7 +871,7 @@ for(l in 1:nloci){
 			n_mismatches<-0
 		} else {
 			alignment2genind(align, polyThres=0)->dna
-			length(dna@loc.names)->n_mismatches
+			length(dna@all.names)->n_mismatches
 		}
 
 		align$nb->nseq
