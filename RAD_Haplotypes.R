@@ -351,11 +351,14 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
 	names(data)<-c("Locus","Sample","Allele","Chromosome","Position","Strand","Sequence")
   } else {
   data.frame(metadata$X2,metadata$X4,metadata$X8,  rep(0, length(sequences)),rep(0, length(sequences)), rep(0, length(sequences)), sequences)->data
-  names(data)<-c("Locus","Sample","Allele",    "Chromosome","Position","Strand","Sequence")}
+  names(data)<-c("Locus","Sample","Allele","Chromosome","Position","Strand","Sequence")}
 
 	as.numeric(levels(data$Locus))[data$Locus]->data$Locus
 	as.numeric(levels(data$Sample))[data$Sample]->data$Sample
+  if(ref_flag==1){
 	as.numeric(gsub(' ', '', position$X1))->data$Allele
+  } else {
+  as.numeric(levels(data$Allele))[data$Allele]->data$Allele}
 
 ##########
 #Fixing the real sample and population names from the population map
