@@ -17,51 +17,52 @@ if("--help" %in% args) {
 
 	RAD Haplotype tool
 	_____________________________________________________________________________________________________
-	
+
 	Parses a Stacks population fasta file, in order to 1) export locus files for downstream analysis, and
 	2) perform locus-based summary statistic caclulation (number of haplotypes, Tajima's D, nucleotide
 	diversity, pairwise mismatch distribution, segregating site density distribution).
-	
+
 	Output can be fasta, nexus, or alternatively fasta-like blocks suitable for building a MIGRATE-n input
 	file using the MIGRATE_infile.R script. Output can also be set to 'silent'. The tool is designed to be
 	used in a population-coalescent framework: sequences are drawn randomly from the population haplotype
 	pool. If coverage is not rock-solid, it is possible to downsample to haploid individuals (--ploidy=1).
- 	
+
  	Population map is a tab-separated text file: first field contains unique individual names, second field
  	3-letter population codes, tab-separated. Use ignore_pop to ignore that information and output a single
  	file per locus. 'Keep' list is a simple column of individual names to retain if analysis is restricted
  	to a subset of samples.
- 	
+
  	You can choose the number of samples to output using nind. In case of multiple populations, specify the
  	number of samples per population (coma-separated). Use '-1' to keep all available haplotypes. Specified
  	numbers can be exact, or a minimum number (--min flag). If only one number is specified, it is applied
- 	to all populations. If ignore_pop is used, only one value is needed. 
+ 	to all populations. If ignore_pop is used, only one value is needed.
  	_____________________________________________________________________________________________________
-	
+
 	Arguments:
-	
+
 	--fasta=	the input whole-database fasta file from Stacks
 	--map=		a *complete* population map (all samples must be present)
 	--keep=		an optional subset of individuals to restrict the analysis
 	--nind=		number of invididuals to keep per locus and per population (coma-separated) [-1]
 	--min		is nind a minimum number or individuals (as opposed to exact)?
-	--ploidy=	number of chromosomes to randomly sample per individual [1]	
+	--ploidy=	number of chromosomes to randomly sample per individual [1]
 	--stats		will calculate and output summary statistics on a per-locus basis
 	--out=		path to output file [same as fasta]
 	--save=		prefix to save the data output as R lists to be loaded in an R session [null]
 	--type=		'fasta', 'nexus', 'migrate' or 'silent' [nexus, or silent in stats mode]
 	--ignore_pop=	logical. If 1, population information will be discarded (fasta or nexus only) [0]
-	
+  --ref=  logical. If 1, the data has been mapped to a reference genome, otherwise it is independant stacks [1]
+
 	--help         	print this text
- 
+
 	Example:
-	
-	./RAD_Haplotypes.R --fasta=batch_1.fa --map=~/paired/emperor/emp.popmap --out=./ --type='migrate' 
+
+	./RAD_Haplotypes.R --fasta=batch_1.fa --map=~/paired/emperor/emp.popmap --out=./ --type='migrate'
 	--nind=8,4,-1,8 --min --ploidy=1 --stats
  	_____________________________________________________________________________________________________
-	
-	
-")	
+
+
+")
   q(save="no")
 
 }
@@ -74,24 +75,24 @@ parseArgs <- function(x) strsplit(sub("^--", "", x), "=")
 argsDF <- as.data.frame(do.call("rbind", parseArgs(args)))
 argsL <- as.list(as.character(argsDF$V2))
 names(argsL) <- argsDF$V1
- 
+
 ## --fasta error
 if(is.null(argsL$fasta)) {
   stop("You forgot to provide an input file")}
-  
+
 ## --map error
 if(is.null(argsL$map)) {
   stop("You forgot to provide a population map")}
-  
+
 ## --nind error
 if(is.null(argsL$nind)) {
 	stop("You must provide a number of individuals to output")
-} else { as.numeric(unlist(strsplit(argsL$nind,','))) -> nind }  
+} else { as.numeric(unlist(strsplit(argsL$nind,','))) -> nind }
 
 ## --min default
 if(is.null(argsL$min)) {
 	min_nind <- 0
-} else { 1 -> min_nind }  
+} else { 1 -> min_nind }
 
 ## --out default
 if(is.null(argsL$out)) {
@@ -101,7 +102,7 @@ if(is.null(argsL$out)) {
 ## --save default
 if(is.null(argsL$save)) {
   do_save <- 0
-} else { 
+} else {
 	do_save <- 1
 	argsL$save ->  path_save }
 
@@ -120,7 +121,7 @@ if(is.null(argsL$ploidy)) {
 ## --keep default
 if(is.null(argsL$keep)){
 	keep<-0
-} else { keep <- 1 
+} else { keep <- 1
 	argsL$keep->path_keep
 }
 
@@ -137,6 +138,11 @@ if(ignore==1 & out_type=='migrate') {
 if(is.null(argsL$stats)){
 	stats<-0
 } else { stats <- 1 }
+
+## --ref default
+if(is.null(argsL$ref)) {
+  ref_flag <- 1
+} else { as.numeric(argsL$ref) -> ref_flag }
 
 argsL$fasta -> path_in
 argsL$map -> path_map
@@ -198,7 +204,7 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
     defgap <- "-"
     defmissing <- "?"
     if (is.matrix(x)) {
-        if (inherits(x, "DNAbin")) 
+        if (inherits(x, "DNAbin"))
             x <- as.list(x)
         else {
             xbak <- x
@@ -211,9 +217,9 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
     ntax <- length(x)
     nchars <- length(x[[1]])
     zz <- file(file, "w")
-    if (is.null(names(x))) 
+    if (is.null(names(x)))
         names(x) <- as.character(1:ntax)
-    fcat <- function(..., file = zz) cat(..., file = file, sep = "", 
+    fcat <- function(..., file = zz) cat(..., file = file, sep = "",
         append = TRUE)
     find.max.length <- function(x) max(nchar(x))
     print.matrix <- function(x, dindent = "    ") {
@@ -223,7 +229,7 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
             for (i in seq_along(x)) {
                 sequence <- paste(x[[i]], collapse = "")
                 taxon <- Names[i]
-                thestring <- sprintf("%-*s%s%s", printlength, 
+                thestring <- sprintf("%-*s%s%s", printlength,
                   taxon, dindent, sequence)
                 fcat(indent, indent, thestring, "\n")
             }
@@ -236,20 +242,20 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
                 for (i in seq_along(x)) {
                   sequence <- paste(x[[i]][start:end], collapse = "")
                   taxon <- Names[i]
-                  thestring <- sprintf("%-*s%s%s", printlength, 
+                  thestring <- sprintf("%-*s%s%s", printlength,
                     taxon, dindent, sequence)
                   fcat(indent, indent, thestring, "\n")
                 }
-                if (j < ntimes) 
+                if (j < ntimes)
                   fcat("\n")
                 start <- start + charsperline
                 end <- end + charsperline
-                if (end > nchars) 
+                if (end > nchars)
                   end <- nchars
             }
         }
     }
-    fcat("#NEXUS\n[Data written by write.nexus.data.R, ", date(), 
+    fcat("#NEXUS\n[Data written by write.nexus.data.R, ", date(),
         "]\n")
     NCHAR <- paste("NCHAR=", nchars, sep = "")
     NTAX <- paste0("NTAX=", ntax)
@@ -261,19 +267,19 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
         }
         else charsperline <- defcharsperline
     }
-    if (is.null(missing)) 
+    if (is.null(missing))
         missing <- defmissing
     MISSING <- paste0("MISSING=", missing)
-    if (is.null(gap)) 
+    if (is.null(gap))
         gap <- defgap
     GAP <- paste0("GAP=", gap)
-    INTERLEAVE <- if (interleaved) 
+    INTERLEAVE <- if (interleaved)
         "INTERLEAVE=YES"
     else "INTERLEAVE=NO"
     if (datablock) {
         fcat("BEGIN DATA;\n")
         fcat(indent, "DIMENSIONS ", NTAX, " ", NCHAR, ";\n")
-        fcat(indent, "FORMAT", " ", DATATYPE, " ", MISSING, " ", 
+        fcat(indent, "FORMAT", " ", DATATYPE, " ", MISSING, " ",
             GAP, " ", INTERLEAVE, ";\n")
         fcat(indent, "MATRIX\n")
         print.matrix(x)
@@ -296,7 +302,7 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
         fcat("\n", indent, ";\n")
         fcat("END;\n\nBEGIN CHARACTERS;\n")
         fcat(indent, "DIMENSIONS", " ", NCHAR, ";\n")
-        fcat(indent, "FORMAT", " ", MISSING, " ", GAP, " ", DATATYPE, 
+        fcat(indent, "FORMAT", " ", MISSING, " ", GAP, " ", DATATYPE,
             " ", INTERLEAVE, ";\n")
         fcat(indent, "MATRIX\n")
         print.matrix(x)
@@ -319,6 +325,7 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
 
 ##########
 #Parse the data
+  if(ref_flag==1){
 	cat("done.\nFormatting fasta file...")
 	fasta[seq(1,nrow(fasta), 2),]->header
 	gsub('Scaffold_', 'Scaffold', header)->header
@@ -327,10 +334,25 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
 	data.frame(matrix(unlist(splits), nrow=length(header), byrow=T))->metadata
 	data.frame(matrix(unlist(strsplit(gsub('\\[|\\,|\\]', '', as.character(metadata$X8)), ' ')), nrow=length(header), byrow=T))->position
 
+  } else {
+  cat("done.\nFormatting fasta file...")
+	fasta[seq(1,nrow(fasta), 2),]->header
+	fasta[seq(2,nrow(fasta), 2),]->sequences
+	strsplit(gsub(' ', '_', as.character(header)), '_')->splits
+	data.frame(matrix(unlist(splits), nrow=length(header), byrow=T))->metadata
+	data.frame(gsub('\\[|\\,|\\]', '', as.character(metadata$X9)))->position
+  }
+
+
 ##########
 #Combine it into a dataframe
+  if(ref_flag==1){
 	data.frame(metadata$X2,metadata$X4,position$X1,position$X3,position$X4, position$X5, sequences)->data
 	names(data)<-c("Locus","Sample","Allele","Chromosome","Position","Strand","Sequence")
+  } else {
+  data.frame(metadata$X2,metadata$X4,metadata$X8,  rep(0, length(sequences)),rep(0, length(sequences)), rep(0, length(sequences)), sequences)->data
+  names(data)<-c("Locus","Sample","Allele",    "Chromosome","Position","Strand","Sequence")}
+
 	as.numeric(levels(data$Locus))[data$Locus]->data$Locus
 	as.numeric(levels(data$Sample))[data$Sample]->data$Sample
 	as.numeric(gsub(' ', '', position$X1))->data$Allele
@@ -339,7 +361,7 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
 #Fixing the real sample and population names from the population map
 	cat("done.\nParsing populations...")
 	read.csv(eval(path_map), sep='\t', header=F) -> map
-		#In case the ignore_pop flag is on, population info is discarded 
+		#In case the ignore_pop flag is on, population info is discarded
 		#and we pick the sum of all asked sequences at random.
 			if(ignore==1){map[,2]<-'ALL'
 			nind <- nind[1]}
@@ -364,12 +386,12 @@ write.nexus.correct <- function(x, file, format = "dna", datablock = TRUE, inter
 #Merging the data and the population map
 	merge(data, map, by="Sample")->data
 	length(unique(map[,2])) -> map.npop
-	
+
 ##########
 #Checking if the correct number of nind has been provided and correct nind if needed
 if(ignore==0){
 	if(length(nind)<map.npop){
-	rep(nind[1], map.npop)->nind}	
+	rep(nind[1], map.npop)->nind}
 }
 
 ##########
@@ -405,7 +427,7 @@ cat('\n')
 #Initialize the list to store alignments
 	align.list<-list()
 	loc.names<-vector()
-	
+
 ##########
 #Initialize counting variables
 	notenough <- 0
@@ -430,7 +452,7 @@ cat('\n')
 
 ##########
 #Control whether each population has enough data
-	if(npop<map.npop){			
+	if(npop<map.npop){
 	#this means that this locus is not present in every mapped population.
 		popdrop <- popdrop+1
 		align.index-1 -> align.index
@@ -452,7 +474,7 @@ cat('\n')
 	#Now we can parse a name for that locus
 	paste("Locus_",locus$Locus[1], "_", locus$Chromosome[1] ,":", locus$Position[1], sep='')->loc.name
 	c(loc.names, loc.name)->loc.names
-	
+
 	########################################################################################################################
 	## EMBEDDED POPULATION LOOP - CORE TASK
 	########################################################################################################################
@@ -491,12 +513,12 @@ cat('\n')
 			sample(seq(1,n.haplo,1), nind[p], replace=F)->nind_subset
 			haploid_subset[sort(nind_subset),]->subset
 				} else if (min_nind==1){
-				haploid_subset -> subset			
+				haploid_subset -> subset
 				}
 			} else if (nind[p] < 0) { haploid_subset -> subset }
 
 	##########
-	#Alternatively, keep the whole diploid sample	
+	#Alternatively, keep the whole diploid sample
 	} else if(ploidy==2){
 		seq(1,nrow(fixed),1)->index
 		##########
@@ -510,9 +532,9 @@ cat('\n')
 			}
 		} else if (nind[p] < 0) { fixed -> subset }
 	}
-		
+
 	##########
-	#Format that locus into a printable DNA block		
+	#Format that locus into a printable DNA block
 		parse.name <- function(x){paste('>Locus_',as.numeric(x[2]),'_',x[8], sep='', collapse='')}
 		apply(subset, 1, parse.name)->fasta.names
 		data.frame(names=fasta.names, sequences=subset$Sequence, com=subset$Pop)->output
@@ -536,7 +558,7 @@ cat('\n')
 
 ##########
 #End of the missing-pop and pseudopolyploid exceptions
-	} else { 
+	} else {
 	polypl <- polypl+1
 	align.index-1 -> align.index
 	}
@@ -596,31 +618,31 @@ for(l in 1:nloci){
 	for(p in 1:npop){
 		align.list[[l]][[p]]->locus.align
 		as.DNAbin(locus.align)->locus.bin
-	
+
 		#Find the number of sequences
 		locus.align$nb -> n_seq
-	
+
 		#Find the number of mismatches
 		if(sum(dist.alignment(locus.align))==0){n_mismatches<-0
 		} else { alignment2genind(locus.align, polyThres=0)->dna
 		length(dna@loc.names)->n_mismatches}
-	
+
 		#Find the number of haplotypes
 		length(unique(locus.align$seq))->n_haplo
-		
+
 		#Perform Tajima's test
 		if(n_mismatches > 0 & locus.align$nb >=4){
 		as.numeric(tajima.test(locus.bin))->taj_test
 		} else { c(NA,NA,NA)->taj_test}
-		
+
 		#Compute nucleootide diversity
 		nuc.div(locus.bin)->div
-		
+
 		#Make a result vector
 		c(n_seq, n_mismatches, n_haplo, taj_test, div)->l.p.stat
-	
+
 		rbind(sumstats[[p]], l.p.stat)->sumstats[[p]]
-	
+
 		#Calculate the mismatch distribution as a vector of 95+1 cells
 		table(round(dist.dna(locus.bin)*95))->pairwise
 		pairwise*(1/sum(pairwise))->pairwise
@@ -628,7 +650,7 @@ for(l in 1:nloci){
 		pairwise->m_dist[1:length(pairwise)]
 		m_dist[97]<-n_mismatches
 		rbind(mismatch[[p]], m_dist)->mismatch[[p]]
-	
+
 	} #end of the pop loop
 	setTxtProgressBar(pb,l)
 } #end of the locus loop
@@ -687,7 +709,7 @@ for(p in 1:npop){
 		names(distributions[[p]])[c]->S
 		names(distributions)[p]->P
 		nrow(mismatch.split[[p]][[c]])->N
-		
+
 ##########
 #ggPlot definition
 plot.title <- paste('Population ', P, ', mismatch distribution for category ', S, '\n(based on ', N,' loci)\n', sep='')
@@ -702,7 +724,7 @@ ggplot(data, aes(x=N_MIS)) +
 	labs(list(title=plot.title, x='Number of mismatches', y='Frequency'), vjust=1) +
 	theme(plot.title=element_text(size=16,lineheight=.8,vjust=1.2), axis.text.x=element_text(size=12,angle=90), axis.text.y=element_text(size=12), axis.title.y=element_text(size=12,lineheight=.8,vjust=0.8)) +
 	theme_bw()->g
-	
+
 	g->mismatch.plots[[p]][[c-1]]
 }
 }
@@ -713,14 +735,14 @@ length(mismatch.plots[[p]])->n.plots
 mismatch.plots[[p]]->plot.list
 suppressMessages(pdf(paste(path_out, '_', pop.names[p], '.pdf', sep=''), width=21, height=27))
 	i<-1
-	plot<-list() 
+	plot<-list()
 	for (n in 1:n.plots){
   	plot[[i]]<-plot.list[[n]]
   		if(i %% 6 == 0) {
     		do.call(grid.arrange, plot)
     		plot<-list()
     		i<-0}
-  	i<-i+1}  	
+  	i<-i+1}
 if (length(plot) != 0) {do.call(grid.arrange, plot)}
 suppressMessages(dev.off())
 }
@@ -761,7 +783,7 @@ ggplot(res, aes(x=seq))+geom_line(aes(y=mean), size=0.4) +
 	ggtitle(title) +
 	theme(plot.title=element_text(size=12,lineheight=.8,vjust=1),axis.text.x=element_text(size=12),axis.text.y=element_text(size=12),axis.title.x=element_text(size=12,lineheight=.8,vjust=-0.4),axis.title.y=element_text(size=12,lineheight=.8,vjust=0.8)) -> g
 	g -> seg.plots[[p]]
-	
+
 	setTxtProgressBar(pb,p)
 
 } #end of poisson loop
@@ -772,14 +794,14 @@ length(seg.plots)->n.plots
 seg.plots->plot.list
 pdf(paste(path_out, '_segsites.dist.pdf', sep=''), width=21, height=27)
 	i<-1
-	plot<-list() 
+	plot<-list()
 	for (n in 1:n.plots){
   	plot[[i]]<-plot.list[[n]]
   		if(i %% 6 == 0) {
     		do.call(grid.arrange, plot)
     		plot<-list()
     		i<-0}
-  	i<-i+1}  	
+  	i<-i+1}
 if (length(plot) != 0) {do.call(grid.arrange, plot)}
 #suppressMessages(dev.off())
 
@@ -815,9 +837,9 @@ if(out_type != 'migrate'){
 
 	for(l in 1:nloci){
 		for(p in 1:(npop-1)){
-	
+
 			align.list[[l]][[p]]->align
-	
+
 			##########
 			#Get the number of mismatches in that locus
 			if(sum(dist.alignment(align))==0){
@@ -826,7 +848,7 @@ if(out_type != 'migrate'){
 				alignment2genind(align, polyThres=0)->dna
 				length(dna@loc.names)->n_mismatches
 			}
-			
+
 		##########
 		#Reformat the alignment into a simple dataframe
 		data.frame(names=align$nam, sequences=align$seq)->output
@@ -834,7 +856,7 @@ if(out_type != 'migrate'){
 		##########
 		#Write a Nexus file
 		if(out_type=='nexus'){
-		
+
 			as.character(output$sequences)->nex
 			names(nex)<-output$names
 			as.list(nex)->nex
@@ -843,9 +865,9 @@ if(out_type != 'migrate'){
 					} else { write.nexus.correct(nex, paste(dirname(path_out), '/locus_', loc.names[l],'.',n_mismatches,'snps.subset.nex', sep='', collapse=''), format = "dna", interleaved=F)}
 
 		##########
-		#Write a Fasta file				
+		#Write a Fasta file
 		} else if(out_type=='fasta') {	#Writing out as Fasta file
-		
+
 					if(npop>1){ write.table(output, paste(dirname(path_out), '/locus_', loc.names[l],'_',pop.names[p],'.',n_mismatches,'snps.subset.fa', sep='', collapse=''), sep='\n', quote=F, row.names=F, col.names=F)
 					} else {	write.table(output, paste(dirname(path_out), '/locus_', loc.names[l],'.',n_mismatches,'snps.subset.fa', sep='', collapse=''), sep='\n', quote=F, row.names=F, col.names=F)}
 		}
